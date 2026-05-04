@@ -74,11 +74,9 @@
         .marquee-text { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; }
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         
-        /* স্লাইডার ইমেজ ফিক্স */
         .slide { display: none; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 20px; background-color: #000; }
         @media (max-width: 768px) { .slide { aspect-ratio: 4 / 3; } }
 
-        /* ওয়েলকাম পপআপ স্টাইল */
         #welcome-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
         .welcome-content { background: white; border-radius: 30px; width: 100%; max-width: 400px; overflow: hidden; position: relative; animation: popIn 0.5s ease; }
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -175,7 +173,7 @@
 
                 <div id="sec-s" class="hidden space-y-4">
                     <input id="shopName" type="text" placeholder="দোকানের নাম" class="p-3 border rounded-xl w-full">
-                    <label class="text-xs font-bold text-slate-500 ml-2">থিম সিলেক্ট করুন (৫০টি স্টাইল)</label>
+                    <label class="text-xs font-bold text-slate-500 ml-2">থিম সিলেক্ট করুন</label>
                     <select id="shopStyle" class="p-3 border rounded-xl w-full bg-white outline-none"></select>
                     <input id="new-h" type="text" placeholder="হেডলাইন" class="p-3 border rounded-xl w-full">
                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
@@ -273,7 +271,8 @@
 
     <div id="admin-modal" class="fixed inset-0 bg-black/60 hidden z-[2100] flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-sm text-center">
-            <input id="a-pass" type="password" class="w-full p-4 border rounded-2xl mb-4 text-center" placeholder="অ্যাডমিন পিন">
+            <input id="a-pass" type="password" class="w-full p-4 border rounded-2xl mb-4 text-center"
+placeholder="অ্যাডমিন পিন">
             <button onclick="adminAuth()" class="w-full btn-dark p-4 rounded-3xl font-bold">লগইন</button>
             <button onclick="hideModal('admin-modal')" class="text-slate-400 text-xs mt-4 block w-full text-center">বাতিল</button>
         </div>
@@ -297,55 +296,15 @@
         const IMGBB_API_KEY = "0ed286b131cd7460ee3408759bd3dfd4";
         let tempPrice = 0, tempName = "", currentCat = "all", isReg = false;
 
-        // --- ওয়েলকাম অ্যাড কন্ট্রোল (সংশোধিত) ---
-        function checkAndShowAd() {
-            db.ref('welcome_ad').once('value', snap => {
-                const ad = snap.val();
-                if (ad && ad.active) {
-                    document.getElementById('w-title-view').innerText = ad.title || "";
-                    document.getElementById('w-msg-view').innerText = ad.msg || "";
-                    if (ad.img) {
-                        document.getElementById('w-img-view').src = ad.img;
-                        document.getElementById('w-img-view').classList.remove('hidden');
-                    } else {
-                        document.getElementById('w-img-view').classList.add('hidden');
-                    }
-                    document.getElementById('welcome-popup').style.display = 'flex';
-                }
-            });
-        }
-
-        function closeWelcome() { 
-            document.getElementById('welcome-popup').style.display = 'none'; 
-        }
-
-        function saveWelcomeSettings() {
-            const data = {
-                active: document.getElementById('w-status').checked,
-                title: document.getElementById('w-title').value,
-                msg: document.getElementById('w-msg').value,
-                img: document.getElementById('w-img').value
-            };
-            db.ref('welcome_ad').set(data).then(() => {
-                alert("ওয়েলকাম অ্যাড আপডেট হয়েছে!");
-                if(data.active) checkAndShowAd();
-            });
-        }
-
-        // --- অন্যান্য ফাংশন (হুবহু রাখা হয়েছে) ---
         async function uploadToImgBB(input, targetId) {
             const file = input.files[0];
             if (!file) return;
-            alert("Uploading...");
             const formData = new FormData();
             formData.append('image', file);
             try {
                 const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
                 const data = await res.json();
-                if(data.success) {
-                    document.getElementById(targetId).value = data.data.url;
-                    alert("Success!");
-                }
+                if(data.success) document.getElementById(targetId).value = data.data.url;
             } catch (e) { alert("Upload Failed!"); }
         }
 
@@ -360,6 +319,7 @@
             }
         }
 
+        // --- সেকশন ১: সেটিংস ও ডাটা লোডিং ---
         function saveSettings() {
             const slides = [];
             for(let i=1; i<=7; i++) {
@@ -382,49 +342,68 @@
             nav.innerText = s.name || "জুই ইলেকট্রনিক্স";
             nav.className = `text-xl font-bold ${s.style || 'font-style-1'}`;
             document.getElementById('headline-view').innerText = s.head || "";
+            document.getElementById('shopName').value = s.name || "";
+            document.getElementById('new-h').value = s.head || "";
+            document.getElementById('shopStyle').value = s.style || "font-style-1";
             if(s.slides) {
+                s.slides.forEach((l, i) => { if(i<7) document.getElementById('slide'+(i+1)).value = l; });
                 document.getElementById('slider-box').innerHTML = s.slides.map(l => `<img src="${l}" class="slide">`).join('');
                 startSlider();
             }
         });
 
-        function toggleAuthMode() { 
-            isReg = !isReg; 
-            document.getElementById('reg-name').classList.toggle('hidden'); 
-            document.getElementById('auth-title').innerText = isReg ? "নতুন অ্যাকাউন্ট" : "প্রবেশ করুন"; 
-            document.getElementById('auth-main-btn').innerText = isReg ? "রেজিস্ট্রেশন" : "লগইন"; 
+        // --- সেকশন ২: ওয়েলকাম অ্যাড (ঠিক করা হয়েছে) ---
+        function saveWelcomeSettings() {
+            const data = {
+                status: document.getElementById('w-status').checked,
+                title: document.getElementById('w-title').value,
+                msg: document.getElementById('w-msg').value,
+                img: document.getElementById('w-img').value
+            };
+            db.ref('welcome').set(data).then(() => alert("Welcome Ad Updated!"));
         }
 
-        function handleAuth() { 
-            const u = document.getElementById('auth-user').value.trim(); 
-            const p = document.getElementById('auth-pass').value.trim(); 
-            if(!u || !p) return alert("দয়া করে তথ্য দিন"); 
-            if(isReg) { 
-                const n = document.getElementById('reg-name').value.trim(); 
-                db.ref('users/' + u).set({ name: n, pass: p }).then(() => { 
-                    localStorage.setItem('jui_logged_user', u); 
-                    enterApp();
-                }); 
-            } else { 
-                db.ref('users/' + u).once('value', snap => { 
-                    if(snap.exists() && snap.val().pass === p) { 
-                        localStorage.setItem('jui_logged_user', u); 
-                        enterApp();
-                    } else alert("ভুল তথ্য!"); 
-                }); 
-            } 
-        }
+        db.ref('welcome').on('value', snap => {
+            const w = snap.val();
+            if(!w) return;
+            // অ্যাডমিন প্যানেলে মান বসানো
+            document.getElementById('w-status').checked = w.status;
+            document.getElementById('w-title').value = w.title || "";
+            document.getElementById('w-msg').value = w.msg || "";
+            document.getElementById('w-img').value = w.img || "";
 
-        function enterApp() {
-            document.getElementById('auth-guard').classList.add('hidden'); 
-            document.getElementById('app-content').classList.remove('hidden'); 
-            renderProducts(); 
-            setTimeout(checkAndShowAd, 1500); // অ্যাপে ঢোকার ১.৫ সেকেন্ড পর অ্যাড আসবে
-        }
+            // পপআপে দেখানো
+            if(w.status) {
+                document.getElementById('w-title-view').innerText = w.title;
+                document.getElementById('w-msg-view').innerText = w.msg;
+                if(w.img) {
+                    const img = document.getElementById('w-img-view');
+                    img.src = w.img;
+                    img.classList.remove('hidden');
+                }
+                document.getElementById('welcome-popup').style.display = 'flex';
+            }
+        });
 
+        function closeWelcome() { document.getElementById('welcome-popup').style.display = 'none'; }
+
+        // --- সেকশন ৩: অথেন্টিকেশন ---
+        function handleAuth() {
+            const u = document.getElementById('auth-user').value.trim();
+            const p = document.getElementById('auth-pass').value.trim();
+            if(!u || !p) return;
+            if(isReg) {
+                const n = document.getElementById('reg-name').value.trim();
+                db.ref('users/' + u).set({ name: n, pass: p }).then(() => { localStorage.setItem('jui_logged_user', u); location.reload(); });
+            } else {
+                db.ref('users/' + u).once('value', snap => {
+                    if(snap.exists() && snap.val().pass === p) { localStorage.setItem('jui_logged_user', u); location.reload(); }
+                    else alert("ভুল তথ্য!");
+                });
+            }
+        }
         function logout() { localStorage.removeItem('jui_logged_user'); location.reload(); }
-
-        function addCategory() { const name = document.getElementById('new-cat-name').value.trim(); if(name) db.ref('categories').push(name).then(() => document.getElementById('new-cat-name').value = ""); }
+        function addCategory() { const name = document.getElementById('new-cat-name').value.trim(); if(name) db.ref('categories').push(name); }
         function deleteCat(id) { if(confirm("মুছবেন?")) db.ref('categories/' + id).remove(); }
         
         db.ref('categories').on('value', snap => {
@@ -433,9 +412,15 @@
             const productCatSelect = document.getElementById('pCat');
             filterList.innerHTML = `<button onclick="filterByCategory('all')" class="cat-btn ${currentCat === 'all' ? 'active' : ''} px-6 py-2 rounded-full border border-slate-300 text-sm font-bold whitespace-nowrap">সব পণ্য</button>`;
             adminCatList.innerHTML = ""; productCatSelect.innerHTML = `<option value="">ক্যাটাগরি</option>`;
-            snap.forEach(c => { const id = c.key, name = c.val(); filterList.innerHTML += `<button onclick="filterByCategory('${name}')" class="cat-btn ${currentCat === name ? 'active' : ''} px-6 py-2 rounded-full border border-slate-300 text-sm font-bold whitespace-nowrap">${name}</button>`; adminCatList.innerHTML += `<div class="bg-white border px-3 py-1 rounded-lg text-xs flex items-center gap-2">${name} <button onclick="deleteCat('${id}')" class="text-red-500 font-bold">×</button></div>`; productCatSelect.innerHTML += `<option value="${name}">${name}</option>`; });
+            snap.forEach(c => {
+                const id = c.key, name = c.val();
+                filterList.innerHTML += `<button onclick="filterByCategory('${name}')" class="cat-btn ${currentCat === name ? 'active' : ''} px-6 py-2 rounded-full border border-slate-300 text-sm font-bold whitespace-nowrap">${name}</button>`;
+                adminCatList.innerHTML += `<div class="bg-white border px-3 py-1 rounded-lg text-xs flex items-center gap-2">${name} <button onclick="deleteCat('${id}')" class="text-red-500 font-bold">×</button></div>`;
+                productCatSelect.innerHTML += `<option value="${name}">${name}</option>`;
+            });
         });
 
+        // --- সেকশন ৪: পণ্য ম্যানেজমেন্ট ---
         function renderProducts() {
             db.ref('products').on('value', snap => {
                 const grid = document.getElementById('product-grid');
@@ -450,18 +435,75 @@
                 });
             });
         }
+
+        function deleteP(id) { if(confirm("মুছবেন?")) db.ref('products/' + id).remove(); }
         function showDetails(id) { db.ref('products/' + id).once('value', snap => { const p = snap.val(); tempName = p.name; tempPrice = p.price; document.getElementById('det-img').src = p.img; document.getElementById('det-name').innerText = p.name; document.getElementById('det-price').innerText = p.price + " ৳"; document.getElementById('det-full').innerText = p.details || p.desc; showModal('details-modal'); }); }
         function openOrder() { hideModal('details-modal'); document.getElementById('pop-total').innerText = tempPrice; document.getElementById('pop-qty').value = 1; showModal('order-popup'); }
         function updateTotal() { document.getElementById('pop-total').innerText = tempPrice * document.getElementById('pop-qty').value; }
-        function saveProduct() { const id = document.getElementById('edit-product-id').value; const data = { name: document.getElementById('pName').value, price: document.getElementById('pPrice').value, stock: document.getElementById('pStock').value, category: document.getElementById('pCat').value, img: document.getElementById('pImg').value, desc: document.getElementById('pDesc').value, details: document.getElementById('pDetails').value }; if(id) db.ref('products/' + id).update(data).then(() => { alert("Updated!"); resetForm(); }); else db.ref('products').push(data).then(() => { alert("Added!"); resetForm(); }); }
+        
+        function saveProduct() {
+            const id = document.getElementById('edit-product-id').value;
+            const data = { name: document.getElementById('pName').value, price: document.getElementById('pPrice').value, stock: document.getElementById('pStock').value, category: document.getElementById('pCat').value, img: document.getElementById('pImg').value, desc: document.getElementById('pDesc').value, details: document.getElementById('pDetails').value };
+            if(id) db.ref('products/' + id).update(data).then(() => { alert("Updated!"); resetForm(); });
+            else db.ref('products').push(data).then(() => { alert("Added!"); resetForm(); });
+        }
+
         function editP(id) { db.ref('products/' + id).once('value', snap => { const p = snap.val(); document.getElementById('edit-product-id').value = id; document.getElementById('pName').value = p.name; document.getElementById('pPrice').value = p.price; document.getElementById('pStock').value = p.stock || 0; document.getElementById('pCat').value = p.category || ""; document.getElementById('pImg').value = p.img; document.getElementById('pDesc').value = p.desc || ""; document.getElementById('pDetails').value = p.details || ""; document.getElementById('save-btn-text').innerText = "আপডেট করুন"; switchTab('p'); }); }
         function resetForm() { document.getElementById('edit-product-id').value = ""; ['pName','pPrice','pStock','pImg','pDesc','pDetails'].forEach(id => document.getElementById(id).value = ""); document.getElementById('save-btn-text').innerText = "সেভ করুন"; }
-        function switchTab(t) { ['p','l','s','o','c','w'].forEach(id => { if(document.getElementById('sec-'+id)) document.getElementById('sec-'+id).classList.add('hidden'); if(document.getElementById('t-'+id)) document.getElementById('t-'+id).className = "pb-2 text-slate-400"; }); document.getElementById('sec-'+t).classList.remove('hidden'); document.getElementById('t-'+t).className = "pb-2 text-main border-b-4 border-main"; }
+
+        // --- সেকশন ৫: অর্ডার ম্যানেজমেন্ট (ঠিক করা হয়েছে) ---
+        function finalOrder() {
+            const n = document.getElementById('pop-name').value;
+            const ph = document.getElementById('pop-phone').value;
+            const q = document.getElementById('pop-qty').value;
+            if(!n || !ph) return alert("তথ্য দিন");
+            const total = tempPrice * q;
+            
+            const message = `নিউ অর্ডার তথ্য:%0A----------------------%0Aপণ্যের নাম: ${tempName}%0Aপরিমাণ: ${q} টি%0Aমোট মূল্য: ${total} টাকা%0A----------------------%0Aক্রেতার নাম: ${n}%0Aমোবাইল: ${ph}`;
+            
+            db.ref('orders').push({ 
+                product: tempName, 
+                buyer: n, 
+                phone: ph, 
+                qty: q, 
+                total: total, 
+                status: 'Pending',
+                time: new Date().toLocaleString()
+            }).then(() => {
+                window.open(`https://wa.me/${MY_WHATSAPP}?text=${message}`, '_blank');
+                hideModal('order-popup');
+            });
+        }
+
+        // অ্যাডমিন প্যানেলে অর্ডার লিস্ট দেখানো
+        db.ref('orders').on('value', snap => {
+            const rows = document.getElementById('order-rows');
+            rows.innerHTML = "";
+            snap.forEach(c => {
+                const o = c.val(), k = c.key;
+                rows.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-2">
+                            <b>${o.product}</b> (${o.qty}টি)<br>
+                            <span class="text-gray-500">${o.buyer} - ${o.phone}</span>
+                        </td>
+                        <td class="p-2">
+                            <span class="text-orange-500 font-bold">${o.status}</span><br>
+                            <button onclick="deleteOrder('${k}')" class="text-red-500 text-[10px]">মুছুন</button>
+                        </td>
+                    </tr>`;
+            });
+        });
+
+        function deleteOrder(id) { if(confirm("অর্ডার রেকর্ডটি মুছবেন?")) db.ref('orders/' + id).remove(); }
+
+        // --- সেকশন ৬: ইউটিলিটি ফাংশন ---
+        function switchTab(t) { ['p','l','s','o','c','w'].forEach(id => { if(document.getElementById('sec-'+id)) document.getElementById('sec-'+id).classList.add('hidden'); if(document.getElementById('t-'+id)) document.getElementById('t-'+id).className = "pb-2 text-slate-400"; }); document.getElementById('sec-'+t).classList.remove('hidden'); if(document.getElementById('t-'+t)) document.getElementById('t-'+t).className = "pb-2 text-main border-b-4 border-main"; }
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
         function adminAuth() { if(document.getElementById('a-pass').value === ADMIN_PASS) { document.getElementById('admin-panel').classList.remove('hidden'); hideModal('admin-modal'); } else alert("Wrong Pin!"); }
         function filterByCategory(cat) { currentCat = cat; renderProducts(); }
-        function finalOrder() { const n = document.getElementById('pop-name').value; const ph = document.getElementById('pop-phone').value; const q = document.getElementById('pop-qty').value; if(!n || !ph) return alert("তথ্য দিন"); const total = tempPrice * q; const message = `*Order:* ${tempName}%0A*Customer:* ${n}%0A*Phone:* ${ph}%0A*Total:* ${total} ৳`; db.ref('orders').push({ product: tempName, buyer: n, phone: ph, qty: q, total: total, status: 'Pending' }).then(() => { window.open(`https://wa.me/${MY_WHATSAPP}?text=${message}`, '_blank'); hideModal('order-popup'); }); }
+        function toggleAuthMode() { isReg = !isReg; document.getElementById('reg-name').classList.toggle('hidden'); document.getElementById('auth-title').innerText = isReg ? "নতুন অ্যাকাউন্ট" : "প্রবেশ করুন"; document.getElementById('auth-main-btn').innerText = isReg ? "রেজিস্ট্রেশন" : "লগইন"; }
 
         let slideIdx = 0;
         function startSlider() { 
@@ -476,7 +518,9 @@
         window.onload = () => { 
             loadThemes();
             if(localStorage.getItem('jui_logged_user')) { 
-                enterApp();
+                document.getElementById('auth-guard').classList.add('hidden'); 
+                document.getElementById('app-content').classList.remove('hidden'); 
+                renderProducts(); 
             } 
         };
     </script>
